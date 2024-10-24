@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse Broadcasting</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        #broadcast-area {
+            width: 80%;
+            height: 80%;
+            background-color: white;
+            border: 2px dashed #333;
+            position: relative;
+            overflow: hidden;
+        }
+        .cursor {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            pointer-events: none; /* Prevent the cursor from interfering with mouse events */
+        }
+    </style>
+</head>
+<body>
+    <div id="broadcast-area">
+        <div id="user-cursor" class="cursor" style="display: none;"></div>
+    </div>
+
+    <script>
+        const broadcastArea = document.getElementById('broadcast-area');
+        const userCursor = document.getElementById('user-cursor');
+        const username = 'user1';  // Replace this with a dynamic value if needed
+        const groupId = 'room1';    // Replace with your group ID
+
+        // Connect to WebSocket
+        const socket = new WebSocket(`ws://localhost:8000/ws/group/${username}/${groupId}/`);
+
+        socket.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.username !== username) {
+                // Update cursor position of other users
+                updateCursor(data.x_pos, data.y_pos);
+            }
+        };
+
+        broadcastArea.addEventListener('mousemove', (event) => {
+            const xPos = event.clientX - broadcastArea.offsetLeft;
+            const yPos = event.clientY - broadcastArea.offsetTop;
+
+            // Update user cursor position
+            userCursor.style.left = `${xPos}px`;
+            userCursor.style.top = `${yPos}px`;
+            userCursor.style.display = 'block';
+
+            // Send mouse position to WebSocket
+            socket.send(JSON.stringify({ x_pos: xPos, y_pos: yPos }));
+        });
+
+        function updateCursor(xPos, yPos) {
+            // Show the cursor for other users (you can enhance this to show multiple users)
+            userCursor.style.left = `${xPos}px`;
+            userCursor.style.top = `${yPos}px`;
+        }
+    </script>
+</body>
+</html>
